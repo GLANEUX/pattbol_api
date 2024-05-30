@@ -6,7 +6,7 @@ const app = express();
 const port = process.env.PORT;
 
 
-require('./models/UserModel');
+require('./src/models/UserModel');
 
 app.use(cors());
 app.use(express.urlencoded({ extended: true }));
@@ -22,7 +22,7 @@ sequelize.authenticate()
     .catch(err => console.log('Error: ' + err));
 
 
-    const userRoute = require('./routes/userRoute');
+    const userRoute = require('./src/routes/userRoute');
     app.use('/users', userRoute);
 
 

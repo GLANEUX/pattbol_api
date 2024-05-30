@@ -1,4 +1,5 @@
 const User = require('../models/UserModel');
+const jwt = require('jsonwebtoken');
 
 
 exports.create = async (req, res) => {
@@ -20,7 +21,7 @@ exports.create = async (req, res) => {
 
 
 
-exports.getAll = async (res) => {
+exports.getAll = async (req, res) => {
     try {
         const users = await User.findAll();
 
@@ -34,7 +35,7 @@ exports.getAll = async (res) => {
     }
 };
 
-exports.get = async(res) => {
+exports.get = async(req, res) => {
         try {
             const user = await User.findByPk(req.params.id);
 
@@ -43,4 +44,27 @@ exports.get = async(res) => {
             res.status(500).send(error);
         }
     
+}
+
+exports.login = async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        const user = await User.findOne({ where: { email } });
+        const isPasswordValid = await user.validatePassword(password);
+
+        if (!user) {
+            return res.status(401).send({ message: 'Invalid creditentials'});
+        }
+
+
+        if (!isPasswordValid) {
+            return res.status(401).send('Invalid creditentials');
+        }
+
+        const token = jwt.sign({ id: user.id, email: user.email, pseudo: user.pseudo, role: user.role  }, process.env.JWT_KEY, { expiresIn: '1h' });
+
+        res.status(200).send({ message: `Logged in successfully ${token}` });
+    } catch (error) {
+        res.status(500).send({ message: 'error login', message: error });
+    }
 }

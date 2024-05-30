@@ -5,7 +5,7 @@ const sequelize = new Sequelize(process.env.DB_NAME, process.env.DB_USER, proces
     dialect: 'mysql'
 });
 
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 
 
 const User = sequelize.define('User', {
