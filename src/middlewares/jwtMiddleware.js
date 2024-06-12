@@ -17,17 +17,28 @@ exports.verifyToken = async(req, res, next) => {
             req.user = payload;
             next();
         }else{
-            res.status(403).json({message:"Acces interdit: token manquant"});
+            res.status(403).json({error:"Acces interdit: token manquant"});
         }   
     }catch(error){
         console.log(error);
-        res.status(403).json({message:"Acces interdit : token invalide"});
+        res.status(403).json({error:"Acces interdit : token invalide"});
     }
 }
 
 exports.verifyAdmin = (req, res, next) => {
     if (req.user.role !== 'admin') {
-        return res.status(403).json({ message: 'User is not an admin' });
+        return res.status(403).json({error: 'User is not an admin' });
+    }
+    next();
+};
+
+
+
+exports.GoodUser = (req, res, next) => 
+    {
+
+    if (req.user.id != req.params.id) {
+        return res.status(403).json({error: 'wrong user' });
     }
     next();
 };

@@ -1,6 +1,17 @@
 const User = require('../models/UserModel');
 const jwt = require('jsonwebtoken');
 
+function isValidEmail(email) {
+    // Expression régulière pour valider le format de l'email
+    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return regex.test(email);
+}
+
+function isSecurePassword(password) {
+    // Validation des critères de sécurité du mot de passe
+    const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    return regex.test(password);
+}
 
 exports.create = async (req, res) => {
     try {
@@ -16,17 +27,17 @@ exports.create = async (req, res) => {
             return res.status(400).json({ error: "L'email n'est pas valide." });
         }
 
-   // Vérification de l'unicité de l'email
-const existingUserWithEmail = await User.findOne({ where: { email } });
-if (existingUserWithEmail) {
-    return res.status(400).json({ error: "L'email est déjà utilisé." });
-}
+        // Vérification de l'unicité de l'email
+        const existingUserWithEmail = await User.findOne({ where: { email } });
+        if (existingUserWithEmail) {
+            return res.status(400).json({ error: "L'email est déjà utilisé." });
+        }
 
-// Vérification de l'unicité du nom d'utilisateur
-const existingUserWithUsername = await User.findOne({ where: { username } });
-if (existingUserWithUsername) {
-    return res.status(400).json({ error: "Le nom d'utilisateur est déjà utilisé." });
-}
+        // Vérification de l'unicité du nom d'utilisateur
+        const existingUserWithUsername = await User.findOne({ where: { username } });
+        if (existingUserWithUsername) {
+            return res.status(400).json({ error: "Le nom d'utilisateur est déjà utilisé." });
+        }
 
 
         // Vérification de la sécurité du mot de passe
@@ -48,7 +59,7 @@ if (existingUserWithUsername) {
         });
 
         // Génération du token JWT
-        const token = jwt.sign({ id: user.id, email: user.email, pseudo: user.pseudo, role: user.role }, process.env.JWT_KEY, { expiresIn: '1h' });
+        const token = jwt.sign({ id: user.id}, process.env.JWT_KEY, { expiresIn: '1h' });
 
         res.status(201).json({ token: token, details: "Vous êtes connecté." });
     } catch (error) {
@@ -57,19 +68,6 @@ if (existingUserWithUsername) {
         res.status(500).json({ error: "Une erreur est survenue lors du traitement de votre demande." });
     }
 };
-
-function isValidEmail(email) {
-    // Expression régulière pour valider le format de l'email
-    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return regex.test(email);
-}
-
-
-function isSecurePassword(password) {
-    // Validation des critères de sécurité du mot de passe
-    const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-    return regex.test(password);
-}
 
 exports.login = async (req, res) => {
     try {
@@ -83,15 +81,15 @@ exports.login = async (req, res) => {
             return res.status(401).json({ error: 'Identifiants invalides.' });
         }
 
-        
+
         // Vérification de la validité du mot de passe
         const isPasswordValid = await user.validatePassword(password);
         if (!isPasswordValid) {
             return res.status(401).json({ error: 'Identifiantss invalides.' });
         }
-        
+
         // Génération du token JWT
-        const token = jwt.sign({ id: user.id, email: user.email, pseudo: user.pseudo, role: user.role }, process.env.JWT_KEY, { expiresIn: '1h' });
+        const token = jwt.sign({ id: user.id}, process.env.JWT_KEY, { expiresIn: '1h' });
 
         // Réponse avec le token
         res.status(200).json({ token, details: "Vous êtes connecté." });
@@ -102,19 +100,27 @@ exports.login = async (req, res) => {
     }
 };
 
-
-
-exports.getAll = async (req, res) => {
+exports.getUserIdFromToken = async (req, res) => {
     try {
-        const users = await User.findAll();
-
-        if (!users) {
-            res.status(400).send(error);
+        const token = req.headers['authorization'];
+        if (!token) {
+            return res.status(403).json({ error: "Accès interdit: token manquant" });
         }
 
-        res.status(200).send(users);
+        const payload = await new Promise((resolve, reject) => {
+            jwt.verify(token, process.env.JWT_KEY, (error, decoded) => {
+                if (error) {
+                    reject(error);
+                } else {
+                    resolve(decoded);
+                }
+            });
+        });
+
+        res.status(200).json({ id: payload.id });
     } catch (error) {
-        res.status(500).send(error);
+        console.error("Erreur lors de la vérification du token:", error);
+        res.status(403).json({ error: "Accès interdit : token invalide" });
     }
 };
 
@@ -122,10 +128,124 @@ exports.get = async (req, res) => {
     try {
         const user = await User.findByPk(req.params.id);
 
+        if (!user) {
+            return res.status(401).json({ error: 'Cet utilisateur n\'existe pas' });
+        }
+
         res.status(200).send(user);
     } catch (error) {
-        res.status(500).send(error);
+        // Gestion des erreurs
+        console.error("Erreur lors de la connexion de l'utilisateur:", error);
+        res.status(500).json({ error: "Une erreur est survenue lors du traitement de votre demande." });
     }
 
 }
+//------------------------------------------------------//
+exports.modify = async (req, res) => {
+    try {
 
+        const userId = req.params.id;
+        // Recherche de l'utilisateur dans la base de données
+        const user = await User.findByPk(userId);
+        if (!user) {
+            return res.status(404).json({ error: "Utilisateur non trouvé." });
+        }        const { username, email } = req.body;
+
+        // Vérification des données d'entrée
+        if (!username || !email) {
+            return res.status(400).json({ error: "Tous les champs doivent être remplis." });
+        }
+
+        if (user.email != email) {
+            // Vérification de l'unicité de l'email
+            const existingUserWithEmail = await User.findOne({ where: { email } });
+            if (existingUserWithEmail) {
+                return res.status(400).json({ error: "L'email est déjà utilisé." });
+            }
+        }
+        if (user.username != username) {
+
+            // Vérification de l'unicité du nom d'utilisateur
+            const existingUserWithUsername = await User.findOne({ where: { username } });
+            if (existingUserWithUsername) {
+                return res.status(400).json({ error: "Le nom d'utilisateur est déjà utilisé." });
+            }
+        }
+
+        // Validation de l'email
+        if (!isValidEmail(email)) {
+            return res.status(400).json({ error: "L'email n'est pas valide." });
+        }
+
+        // Sauvegarde des modifications dans la base de données
+        await User.update({ username: username, email: email }, { where: { id: userId } });
+
+        res.status(200).json({ message: "Utilisateur mis à jour avec succès." });
+    } catch (error) {
+        console.error("Erreur lors de la modification de l'utilisateur:", error);
+        res.status(500).json({ error: "Une erreur est survenue lors du traitement de votre demande." });
+    }
+};
+
+exports.modifyPassword = async (req, res) => {
+    try {
+        const userId = req.params.id;
+        const { currentPassword, newPassword, confirmPassword } = req.body;
+
+      // Recherche de l'utilisateur dans la base de données
+      const user = await User.findByPk(userId);
+      if (!user) {
+          return res.status(404).json({ error: "Utilisateur non trouvé." });
+      }
+
+        // Vérification des données d'entrée
+        if (!currentPassword || !newPassword || !confirmPassword) {
+            return res.status(400).json({ error: "Tous les champs doivent être remplis." });
+        }
+
+  
+
+        // Vérification si le mot de passe actuel correspond
+        const isPasswordValid = await user.validatePassword(currentPassword);
+        if (!isPasswordValid) {
+            return res.status(401).json({ error: "Mot de passe actuel incorrect." });
+        }
+
+        // Vérification si les nouveaux mots de passe correspondent
+        if (newPassword !== confirmPassword) {
+            return res.status(400).json({ error: "Les nouveaux mots de passe ne correspondent pas." });
+        }
+
+        // Vérification de la sécurité du nouveau mot de passe
+        if (!isSecurePassword(newPassword)) {
+            return res.status(400).json({ error: "Le nouveau mot de passe ne respecte pas les critères de sécurité minimum." });
+        }
+
+        await User.update({ password: newPassword }, { where: { id: userId } });
+
+        res.status(200).json({ message: "Mot de passe modifié avec succès." });
+    } catch (error) {
+        console.error("Erreur lors de la modification du mot de passe de l'utilisateur:", error);
+        res.status(500).json({ error: "Une erreur est survenue lors du traitement de votre demande." });
+    }
+};
+
+exports.deleteUser = async (req, res) => {
+    try {
+        const userId = req.params.id;
+
+        // Recherche de l'utilisateur dans la base de données
+        const user = await User.findByPk(userId);
+        if (!user) {
+            return res.status(404).json({ error: "Utilisateur non trouvé." });
+        }
+
+        // Suppression de l'utilisateur
+        await User.destroy({ where: { id: userId } });
+
+        res.status(200).json({ message: "Utilisateur supprimé avec succès." });
+    } catch (error) {
+        console.error("Erreur lors de la suppression de l'utilisateur:", error);
+        res.status(500).json({ error: "Une erreur est survenue lors du traitement de votre demande." });
+    }
+};

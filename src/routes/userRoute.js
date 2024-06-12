@@ -3,21 +3,18 @@ const router = express.Router();
 const userController = require('../controllers/UsersController');
 const jwtMiddleware = require('../middlewares/jwtMiddleware');
 
+router.post('/create', userController.create);
+router.post('/login', userController.login);
 
-router
-.route('/create')
-.post(userController.create);
+router.get('/:id', jwtMiddleware.verifyToken, jwtMiddleware.GoodUser, userController.get)
+router.get('/user/id', jwtMiddleware.verifyToken, userController.getUserIdFromToken);
 
-router
-.route('/login')
-.post(userController.login);
+//------------------------------------------------------//
+router.patch('/:id', jwtMiddleware.verifyToken, jwtMiddleware.GoodUser, userController.modify)
+router.patch('/modifyPassword/:id', jwtMiddleware.verifyToken, jwtMiddleware.GoodUser, userController.modifyPassword)
 
-router
-    .route('/')
-    .get(jwtMiddleware.verifyToken, jwtMiddleware.verifyAdmin, userController.getAll)
+router.delete('/:id', jwtMiddleware.verifyToken, jwtMiddleware.GoodUser, userController.deleteUser )
 
-router
-    .route('/:id')
-    .get(userController.get)
+
 
 module.exports = router;
