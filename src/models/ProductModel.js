@@ -1,9 +1,6 @@
 const { Sequelize, DataTypes } = require('sequelize');
-require('dotenv').config();
-const sequelize = new Sequelize(process.env.DB_NAME, process.env.DB_USER, process.env.DB_PASSWORD, {
-    host: process.env.DB_HOST,
-    dialect: 'mysql'
-});
+const sequelize = require('../config/database');
+
 
 const Product = sequelize.define('Product', {
     title: {
@@ -83,6 +80,10 @@ const Product = sequelize.define('Product', {
     addedMinerals: {
         type: Sequelize.TEXT,
         allowNull: true,
+    },
+    other_added: {
+        type: Sequelize.TEXT,
+        allowNull: true, 
     },
     additives: {
         type: Sequelize.TEXT,
