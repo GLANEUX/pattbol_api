@@ -1,11 +1,11 @@
-const Product = require('../models/ProductModel');
-const NutricionalsInformations = require('../models/NutricionalsInformations');
 const fs = require('fs');
 const path = require('path');
 const sequelize = require('../config/database');
 const { Op } = require('sequelize');
 const History = require('../models/HistoryModel');
 const Category = require('../models/CategoryModel')
+const Product = require('../models/ProductModel');
+const NutricionalsInformations = require('../models/NutricionalsInformations');
 
 
 
@@ -198,7 +198,6 @@ exports.scanProduct = async (req, res) => {
     }
 };
 
-
 exports.getProduct = async (req, res) => {
     try {
         const id = req.params.id;
@@ -232,7 +231,6 @@ exports.getProduct = async (req, res) => {
     }
 };
 
-
 exports.getProductsByCategory = async (req, res) => {
     try {
         const categoryId = req.params.categoryId;
@@ -253,4 +251,32 @@ exports.getProductsByCategory = async (req, res) => {
     }
 };
 
+exports.getUserHistory = async (req, res) => {
+    try {
+        const userId = req.params.id;
 
+        const user = await User.findByPk(userId, {
+            include: [
+                {
+                    model: History,
+                    as: 'userHistories',
+                    include: [
+                        {
+                            model: Product,
+                            as: 'product'
+                        }
+                    ]
+                }
+            ]
+        });
+
+        if (!user) {
+            return res.status(404).json({ message: "Utilisateur non trouvé." });
+        }
+
+        res.status(200).json(user.userHistories);
+    } catch (error) {
+        console.error("Erreur lors de la récupération de l'historique de l'utilisateur:", error);
+        res.status(500).json({ message: "Une erreur est survenue lors du traitement de votre demande." });
+    }
+};
