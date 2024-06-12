@@ -14,6 +14,7 @@ router.post('/create', upload.any('file'), productController.createProduct);
 router.get('/search/:search', jwtMiddleware.verifyToken, productController.searchProduct);
 router.get('/scan/:scan', jwtMiddleware.verifyToken, productController.scanProduct);
 router.get('/get/:id', jwtMiddleware.verifyToken, productController.getProduct);
+router.get('/category/:categoryId', productController.getProductsByCategory);
 
 
 module.exports = router;

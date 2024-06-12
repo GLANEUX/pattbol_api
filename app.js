@@ -23,7 +23,8 @@ app.use(express.json());
 require('./src/models/UserModel');
 require('./src/models/ProductModel');
 require('./src/models/NutricionalsInformations');
-
+require('./src/models/CategoryModel');
+require('./src/models/HistoryModel');
     const userRoute = require('./src/routes/UserRoutes');
     app.use('/users', userRoute);
 

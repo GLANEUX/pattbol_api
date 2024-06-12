@@ -4,6 +4,10 @@ const fs = require('fs');
 const path = require('path');
 const sequelize = require('../config/database');
 const { Op } = require('sequelize');
+const History = require('../models/HistoryModel');
+const Category = require('../models/CategoryModel')
+
+
 
 exports.createProduct = async (req, res) => {
     const transaction = await sequelize.transaction();
@@ -29,7 +33,8 @@ exports.createProduct = async (req, res) => {
             addedVitamins,
             addedMinerals,
             additives,
-            nutricionalInformations // Ajouter ceci à la demande
+            nutricionalInformations,
+            categories
         } = req.body;
 
         // Vérification des données d'entrée
@@ -67,7 +72,7 @@ exports.createProduct = async (req, res) => {
                     // Enregistrer le fichier dans le dossier correspondant
                     const uploadPath = path.join(uploadFolderPath, fileName);
                     fs.writeFileSync(uploadPath, file.buffer);
-                    
+
                     // Ajouter le chemin d'accès au fichier dans le tableau des images traitées
                     processedPictures.push(`${process.env.URL}/uploads/${uploadFolder}/${fileName}`);
                 }
@@ -103,7 +108,7 @@ exports.createProduct = async (req, res) => {
 
         if (nutricionalInformations && Array.isArray(nutricionalInformations)) {
             for (const info of nutricionalInformations) {
-                const nutricionalInformation = await NutricionalsInformations.create({
+                await NutricionalsInformations.create({
                     productId: product.id,
                     ref: info.ref,
                     name: info.name,
@@ -114,15 +119,34 @@ exports.createProduct = async (req, res) => {
             }
         }
 
-        // Récupérer un produit avec ses informations nutritionnelles associées
-const productWithNutricionals = await Product.findByPk(product.id, {
-    include: [{ model: NutricionalsInformations, as: 'nutricionalInformations' }]
-});
+        // Associer les catégories au produit
+        if (categories && Array.isArray(categories)) {
+
+            for (const category of categories) {
+                await Category.create({
+                    productId: product.id,
+                    title: category.title,
+                }, { transaction });
+
+            }
+
+        }
+
+
+        // Récupérer le produit avec ses informations nutritionnelles et ses catégories associées
+        const productWithDetails = await Product.findByPk(product.id, {
+            include: [
+                { model: NutricionalsInformations, as: 'nutricionalInformations' },
+                { model: Category, as: 'categories' }
+            ]
+        });
+
+
 
         await transaction.commit();
 
 
-        res.status(201).json({ message: 'Produit créé avec succès.', product, nutricionalInformations: productWithNutricionals });
+        res.status(201).json({ message: 'Produit créé avec succès.', product, product_details: productWithDetails });
     } catch (error) {
         await transaction.rollback();
         console.error("Erreur lors de la création du produit:", error);
@@ -137,13 +161,13 @@ exports.searchProduct = async (req, res) => {
         const searchResult = await Product.findAll({
             where: {
                 [Op.and]: [
-                    { 
+                    {
                         [Op.or]: [
                             { title: { [Op.like]: `%${search}%` } },
                             { brand: { [Op.like]: `%${search}%` } },
                         ]
                     },
-                    { statut: 'Available' } 
+                    { statut: 'Available' }
                 ]
             }
         });
@@ -158,31 +182,32 @@ exports.searchProduct = async (req, res) => {
 };
 
 exports.scanProduct = async (req, res) => {
-    try{
-    const scan = req.params.scan
-    const scanResult = await Product.findOne({ where: barCode={ scan },  statut: 'Available'  });
-    if (scanResult){
-        result = scanResult.id
-    }else{
-        res.status(401).json({ message: "pas trouver" });
+    try {
+        const scan = req.params.scan
+        const scanResult = await Product.findOne({ where: barCode = { scan }, statut: 'Available' });
+        if (scanResult) {
+            result = scanResult.id
+        } else {
+            res.status(401).json({ message: "pas trouver" });
 
+        }
+        res.status(200).json({ result });
+    } catch (error) {
+        console.error("Erreur lors de la Recherche:", error);
+        res.status(500).json({ message: "Une erreur est survenue lors du traitement de votre demande." });
     }
-    res.status(200).json({ result });
-} catch (error) {
-    console.error("Erreur lors de la Recherche:", error);
-    res.status(500).json({ message: "Une erreur est survenue lors du traitement de votre demande." });
-}
 };
+
 
 exports.getProduct = async (req, res) => {
     try {
         const id = req.params.id;
-        
+
         // Rechercher un produit par sa clé primaire
-        const result = await Product.findByPk(id);
+        const product = await Product.findByPk(id);
 
         // Vérifier si le produit existe et si son statut est 'Available'
-        if (!result || result.statut !== 'Available') {
+        if (!product || product.statut !== 'Available') {
             return res.status(404).json({ message: "Produit non trouvé ou non disponible" });
         }
 
@@ -191,12 +216,41 @@ exports.getProduct = async (req, res) => {
             include: [{ model: NutricionalsInformations, as: 'nutricionalInformations' }]
         });
 
-        res.status(200).json({ product: result, nutricionals: productWithNutricionals });
+        // Récupérer l'ID de l'utilisateur (supposons qu'il soit attaché à la demande)
+        const userId = req.user.id; // Assurez-vous de récupérer l'ID de l'utilisateur de manière appropriée
+
+        // Ajouter l'entrée d'historique de consultation
+        await History.upsert({
+            userId,
+            productId: id
+        });
+
+        res.status(200).json({ product, nutricionals: productWithNutricionals });
     } catch (error) {
         console.error("Erreur lors de la recherche du produit:", error);
         res.status(500).json({ message: "Une erreur est survenue lors du traitement de votre demande." });
     }
-}
+};
 
+
+exports.getProductsByCategory = async (req, res) => {
+    try {
+        const categoryId = req.params.categoryId;
+
+        // Récupérer tous les produits associés à une catégorie spécifique
+        const products = await Product.findAll({
+            include: [{
+                model: Category,
+                as: 'categories',
+                where: { id: categoryId }
+            }]
+        });
+
+        res.status(200).json({ products });
+    } catch (error) {
+        console.error("Erreur lors de la récupération des produits par catégorie:", error);
+        res.status(500).json({ message: "Une erreur est survenue lors du traitement de votre demande." });
+    }
+};
 
 
