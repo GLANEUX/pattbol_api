@@ -15,7 +15,7 @@ const User = sequelize.define('User', {
         unique: true,
         validate: {
             notNull: {
-              msg: 'Please enter your username',
+                message: 'Please enter your username',
             },
           },
     },

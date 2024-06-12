@@ -7,6 +7,7 @@ const port = process.env.PORT;
 
 
 require('./src/models/UserModel');
+require('./src/models/ProductModel');
 
 app.use(cors());
 app.use(express.urlencoded({ extended: true }));
@@ -22,8 +23,20 @@ sequelize.authenticate()
     .catch(err => console.log('Error: ' + err));
 
 
-    const userRoute = require('./src/routes/userRoute');
+    const path = require('path');
+    // Définir le chemin du répertoire d'uploads
+    const uploadsDirectory = path.join(__dirname, './src/uploads');
+    // Définir une route pour servir les fichiers statiques dans le répertoire d'uploads
+    app.use('/uploads', express.static(uploadsDirectory));
+
+
+    
+
+    const userRoute = require('./src/routes/UserRoutes');
     app.use('/users', userRoute);
+
+    const productRoute = require('./src/routes/ProductRoutes');
+    app.use('/products', productRoute);
 
 
 sequelize.sync().then(() => {
