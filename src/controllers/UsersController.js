@@ -1,5 +1,7 @@
 const User = require('../models/UserModel');
 const jwt = require('jsonwebtoken');
+const sequelize = require('../config/database');
+const History = require('../models/HistoryModel');
 
 function isValidEmail(email) {
     // Expression régulière pour valider le format de l'email
@@ -15,6 +17,8 @@ function isSecurePassword(password) {
 
 exports.create = async (req, res) => {
     try {
+        const transaction = await sequelize.transaction();
+
         const { username, email, password, confirmPassword } = req.body;
 
         // Vérification des données d'entrée
@@ -60,9 +64,12 @@ exports.create = async (req, res) => {
 
         // Génération du token JWT
         const token = jwt.sign({ id: user.id}, process.env.JWT_KEY, { expiresIn: '1h' });
+        await transaction.commit();
 
         res.status(201).json({ token: token, details: "Vous êtes connecté." });
     } catch (error) {
+        await transaction.rollback();
+
         // Gestion des erreurs
         console.error("Erreur lors de la création de l'utilisateur:", error);
         res.status(500).json({ message: "Une erreur est survenue lors du traitement de votre demande." });
@@ -71,6 +78,8 @@ exports.create = async (req, res) => {
 
 exports.login = async (req, res) => {
     try {
+        const transaction = await sequelize.transaction();
+
         const { email, password } = req.body;
         // Vérification si l'utilisateur existe
         if (!email || !password) {
@@ -93,10 +102,13 @@ exports.login = async (req, res) => {
 
         // Génération du token JWT
         const token = jwt.sign({ id: user.id}, process.env.JWT_KEY, { expiresIn: '1h' });
+        await transaction.commit();
 
         // Réponse avec le token
         res.status(200).json({ token, details: "Vous êtes connecté." });
     } catch (error) {
+        await transaction.rollback();
+
         // Gestion des erreurs
         console.error("Erreur lors de la connexion de l'utilisateur:", error);
         res.status(500).json({ message: "Une erreur est survenue lors du traitement de votre demande." });
@@ -105,6 +117,7 @@ exports.login = async (req, res) => {
 
 exports.getUserIdFromToken = async (req, res) => {
     try {
+        
         const token = req.headers['authorization'];
         if (!token) {
             return res.status(403).json({ message: "Accès interdit: token manquant" });
@@ -127,86 +140,106 @@ exports.getUserIdFromToken = async (req, res) => {
     }
 };
 
+
 exports.get = async (req, res) => {
     try {
-        const user = await User.findByPk(req.params.id);
+        const userId = req.params.id;
 
+        // Rechercher l'utilisateur par son ID
+        const user = await User.findByPk(userId);
+
+        // Vérifier si l'utilisateur existe
         if (!user) {
-            return res.status(401).json({ message: 'Cet utilisateur n\'existe pas' });
+            return res.status(404).json({ message: 'Cet utilisateur n\'existe pas.' });
         }
 
+        // Si l'utilisateur est trouvé, renvoyer une réponse avec les données de l'utilisateur
         res.status(200).send(user);
     } catch (error) {
         // Gestion des erreurs
-        console.error("Erreur lors de la connexion de l'utilisateur:", error);
+        console.error("Erreur lors de la récupération de l'utilisateur:", error);
         res.status(500).json({ message: "Une erreur est survenue lors du traitement de votre demande." });
     }
-
-}
+};
 
 exports.modify = async (req, res) => {
+    let transaction;
     try {
-
         const userId = req.params.id;
+        const { username, email } = req.body;
+
+        // Début de la transaction Sequelize
+        transaction = await sequelize.transaction();
+
         // Recherche de l'utilisateur dans la base de données
         const user = await User.findByPk(userId);
         if (!user) {
             return res.status(404).json({ message: "Utilisateur non trouvé." });
-        }        const { username, email } = req.body;
+        }
 
         // Vérification des données d'entrée
         if (!username || !email) {
             return res.status(400).json({ message: "Tous les champs doivent être remplis." });
         }
 
-        if (user.email != email) {
-            // Vérification de l'unicité de l'email
+        // Vérification de l'unicité de l'email
+        if (user.email !== email) {
             const existingUserWithEmail = await User.findOne({ where: { email } });
             if (existingUserWithEmail) {
                 return res.status(400).json({ message: "L'email est déjà utilisé." });
             }
         }
-        if (user.username != username) {
 
-            // Vérification de l'unicité du nom d'utilisateur
+        // Vérification de l'unicité du nom d'utilisateur
+        if (user.username !== username) {
             const existingUserWithUsername = await User.findOne({ where: { username } });
             if (existingUserWithUsername) {
                 return res.status(400).json({ message: "Le nom d'utilisateur est déjà utilisé." });
             }
         }
 
-        // Validation de l'email
+        // Validation de l'email (vous devez implémenter cette fonction)
         if (!isValidEmail(email)) {
             return res.status(400).json({ message: "L'email n'est pas valide." });
         }
 
-        // Sauvegarde des modifications dans la base de données
-        await User.update({ username: username, email: email }, { where: { id: userId } });
+        // Mise à jour des informations de l'utilisateur
+        await User.update({ username, email }, { where: { id: userId }, transaction });
+
+        // Engagement de la transaction
+        await transaction.commit();
 
         res.status(200).json({ message: "Utilisateur mis à jour avec succès." });
     } catch (error) {
+        // Rollback de la transaction en cas d'erreur
+        if (transaction) {
+            await transaction.rollback();
+        }
         console.error("Erreur lors de la modification de l'utilisateur:", error);
         res.status(500).json({ message: "Une erreur est survenue lors du traitement de votre demande." });
     }
 };
 
+
 exports.modifyPassword = async (req, res) => {
+    let transaction;
     try {
         const userId = req.params.id;
         const { currentPassword, newPassword, confirmPassword } = req.body;
 
-      // Recherche de l'utilisateur dans la base de données
-      const user = await User.findByPk(userId);
-      if (!user) {
-          return res.status(404).json({ message: "Utilisateur non trouvé." });
-      }
+        // Début de la transaction Sequelize
+        transaction = await sequelize.transaction();
+
+        // Recherche de l'utilisateur dans la base de données
+        const user = await User.findByPk(userId);
+        if (!user) {
+            return res.status(404).json({ message: "Utilisateur non trouvé." });
+        }
 
         // Vérification des données d'entrée
         if (!currentPassword || !newPassword || !confirmPassword) {
             return res.status(400).json({ message: "Tous les champs doivent être remplis." });
         }
-
-  
 
         // Vérification si le mot de passe actuel correspond
         const isPasswordValid = await user.validatePassword(currentPassword);
@@ -224,40 +257,59 @@ exports.modifyPassword = async (req, res) => {
             return res.status(400).json({ message: "Le nouveau mot de passe ne respecte pas les critères de sécurité minimum." });
         }
 
-        await User.update({ password: newPassword }, { where: { id: userId } });
+        // Mise à jour du mot de passe de l'utilisateur
+        await User.update({ password: newPassword }, { where: { id: userId }, transaction });
+
+        // Validation et engagement de la transaction
+        await transaction.commit();
 
         res.status(200).json({ message: "Mot de passe modifié avec succès." });
     } catch (error) {
+        // Rollback de la transaction en cas d'erreur
+        if (transaction) {
+            await transaction.rollback();
+        }
         console.error("Erreur lors de la modification du mot de passe de l'utilisateur:", error);
         res.status(500).json({ message: "Une erreur est survenue lors du traitement de votre demande." });
     }
 };
 
+
+//a tester
 exports.deleteUser = async (req, res) => {
+    let transaction;
     try {
         const userId = req.params.id;
         const { confirmPassword } = req.body;
+
+        // Début de la transaction Sequelize
+        transaction = await sequelize.transaction();
 
         // Recherche de l'utilisateur dans la base de données
         const user = await User.findByPk(userId);
         if (!user) {
             return res.status(404).json({ message: "Utilisateur non trouvé." });
         }
-        // Vérification des données d'entrée
-        if (!confirmPassword) {
-            return res.status(401).json({ message: "Mot de passe est incorrect." });
-        }
 
-        // Vérification si le mot de passe actuel correspond
+        // Vérification du mot de passe
         const isPasswordValid = await user.validatePassword(confirmPassword);
         if (!isPasswordValid) {
             return res.status(401).json({ message: "Mot de passe est incorrect." });
         }
-        // Suppression de l'utilisateur
-        await User.destroy({ where: { id: userId } });
+
+        // Suppression de l'utilisateur et de son historique associé
+        await History.destroy({ where: { userId: userId }, transaction });
+        await User.destroy({ where: { id: userId }, transaction });
+
+        // Validation et engagement de la transaction
+        await transaction.commit();
 
         res.status(200).json({ message: "Utilisateur supprimé avec succès." });
     } catch (error) {
+        // Rollback de la transaction en cas d'erreur
+        if (transaction) {
+            await transaction.rollback();
+        }
         console.error("Erreur lors de la suppression de l'utilisateur:", error);
         res.status(500).json({ message: "Une erreur est survenue lors du traitement de votre demande." });
     }

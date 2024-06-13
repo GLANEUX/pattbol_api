@@ -6,7 +6,7 @@ const Product = sequelize.define('Product', {
     title: {
         type: Sequelize.STRING(50),
         allowNull: false,
-        unique: true,
+        unique: false,
         validate: {
             notNull: {
                 message: 'Please enter a title',

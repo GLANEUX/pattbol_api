@@ -18,16 +18,11 @@ const Category = sequelize.define('Category', {
     underscored: true
 });
 
-Product.hasMany(Category, {
-    foreignKey: 'productId',
-    as: 'Category'
-});
 
-Category.belongsTo(Product, {
-    foreignKey: 'productId',
-    as: 'product'
-});
+Category.belongsTo(Product, { foreignKey: 'productId' });
 
+
+Product.hasMany(Category, { as: 'categories', foreignKey: 'productId' });
 
 (async () => {
     try {

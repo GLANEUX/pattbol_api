@@ -26,15 +26,10 @@ const NutricionalsInformations = sequelize.define('NutricionalsInformations', {
 });
 
 
-Product.hasMany(NutricionalsInformations, {
-    foreignKey: 'productId',
-    as: 'nutricionalInformations'
-});
+Product.hasMany(NutricionalsInformations, { as: 'nutricionalInformations', foreignKey: 'productId' });
 
-NutricionalsInformations.belongsTo(Product, {
-    foreignKey: 'productId',
-    as: 'product'
-});
+NutricionalsInformations.belongsTo(Product, { foreignKey: 'productId' });
+
 
 
 

@@ -12,8 +12,9 @@ router.post('/create', upload.any('file'), productController.createProduct);
 
 router.get('/search/:search', jwtMiddleware.verifyToken, productController.searchProduct);
 router.get('/scan/:scan', jwtMiddleware.verifyToken, productController.scanProduct);
+router.get('/categories', jwtMiddleware.verifyToken, productController.getCategories);
+router.get('/category/:title', jwtMiddleware.verifyToken, productController.getProductsByCategory);
 router.get('/get/:id', jwtMiddleware.verifyToken, productController.getProduct);
-router.get('/category/:categoryId', jwtMiddleware.verifyToken, productController.getProductsByCategory);
 router.get('/history/:id', jwtMiddleware.verifyToken, jwtMiddleware.GoodUser, productController.getUserHistory);
 
 
