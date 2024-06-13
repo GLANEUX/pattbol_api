@@ -237,7 +237,6 @@ exports.createProduct = async (req, res) => {
             nutricionalInformations,
             categories
         } = req.body;
-        console.log(req.body)
         // Vérification des données d'entrée
         if (!title) {
         
