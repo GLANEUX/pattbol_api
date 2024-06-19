@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Créer un produit</title>
+ <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h2>Créer un nouveau produit</h2>
+        <form id="productForm" enctype="multipart/form-data">
+            <!-- Champ Titre (requis) -->
+            <div class="form-group">
+                <label for="title">Titre</label>
+                <input type="text" class="form-control" id="title" name="title" required>
+            </div>
+
+            <!-- Champ Statut -->
+            <div class="form-group">
+                <label for="statut">Statut</label>
+                <input type="text" class="form-control" id="statut" name="statut" value="Available">
+            </div>
+
+            <!-- Champ Quantité -->
+            <div class="form-group">
+                <label for="quantity">Quantité</label>
+                <input type="number" class="form-control" id="quantity" name="quantity">
+            </div>
+
+            <!-- Champ Unité de quantité -->
+            <div class="form-group">
+                <label for="quantityUnit">Unité de quantité</label>
+                <input type="text" class="form-control" id="quantityUnit" name="quantityUnit">
+            </div>
+
+            <!-- Champ Code-barres -->
+            <div class="form-group">
+                <label for="barCode">Code-barres</label>
+                <input type="text" class="form-control" id="barCode" name="barCode">
+            </div>
+
+            <!-- Champ Score -->
+            <div class="form-group">
+                <label for="rate">Score entre 1 et 5 (1 pas bon 5 le bon)</label>
+                <input type="number" class="form-control" id="rate" name="rate">
+            </div>
+
+            <!-- Champ Lien -->
+            <div class="form-group">
+                <label for="link">Lien vers le site du produit</label>
+                <input type="text" class="form-control" id="link" name="link">
+            </div>
+
+            <!-- Champ Conditionnement -->
+            <div class="form-group">
+                <label for="conditioning">Conditionnement</label>
+                <input type="text" class="form-control" id="conditioning" name="conditioning">
+            </div>
+
+            <!-- Champ Marque -->
+            <div class="form-group">
+                <label for="brand">Marque</label>
+                <input type="text" class="form-control" id="brand" name="brand">
+            </div>
+
+            <!-- Champ Liste d'ingrédients -->
+            <div class="form-group">
+                <label for="ingredientsList">Liste d'ingrédients</label>
+                <textarea class="form-control" id="ingredientsList" name="ingredientsList"></textarea>
+            </div>
+
+            <!-- Champ Allergènes -->
+            <div class="form-group">
+                <label for="alergens">Allergènes</label>
+                <textarea class="form-control" id="alergens" name="alergens"></textarea>
+            </div>
+
+            <!-- Champ Origine des ingrédients -->
+            <div class="form-group">
+                <label for="ingredientsOrigin">Origine des ingrédients</label>
+                <textarea class="form-control" id="ingredientsOrigin" name="ingredientsOrigin"></textarea>
+            </div>
+
+            <!-- Champ Lieu de fabrication/transformation -->
+            <div class="form-group">
+                <label for="manufacturingProcessingLocation">Lieu de fabrication/transformation</label>
+                <textarea class="form-control" id="manufacturingProcessingLocation" name="manufacturingProcessingLocation"></textarea>
+            </div>
+
+            <!-- Champ Labels/Certifications/Awards -->
+            <div class="form-group">
+                <label for="labelsCertifAwards">Labels/Certifications/Awards</label>
+                <textarea class="form-control" id="labelsCertifAwards" name="labelsCertifAwards"></textarea>
+            </div>
+
+            <!-- Champ Traces éventuelles -->
+            <div class="form-group">
+                <label for="possibleTraces">Traces éventuelles</label>
+                <textarea class="form-control" id="possibleTraces" name="possibleTraces"></textarea>
+            </div>
+
+            <!-- Champ Acides aminés ajoutés -->
+            <div class="form-group">
+                <label for="addedAminoAcid">Acides aminés ajoutés</label>
+                <textarea class="form-control" id="addedAminoAcid" name="addedAminoAcid"></textarea>
+            </div>
+
+            <!-- Champ Vitamines ajoutées -->
+            <div class="form-group">
+                <label for="addedVitamins">Vitamines ajoutées</label>
+                <textarea class="form-control" id="addedVitamins" name="addedVitamins"></textarea>
+            </div>
+
+            <!-- Champ Minéraux ajoutés -->
+            <div class="form-group">
+                <label for="addedMinerals">Minéraux ajoutés</label>
+                <textarea class="form-control" id="addedMinerals" name="addedMinerals"></textarea>
+            </div>
+            
+            <!-- Champ autres ajoutés -->
+            <div class="form-group">
+                <label for="other_added">Autres ajoutés</label>
+                <textarea class="form-control" id="other_added" name="other_added"></textarea>
+            </div>
+
+            <!-- Champ Additifs -->
+            <div class="form-group">
+                <label for="additives">Additifs</label>
+                <textarea class="form-control" id="additives" name="additives"></textarea>
+            </div>
+
+            <!-- Champ Informations nutritionnelles -->
+            <fieldset class="form-group" id="nutritionalInfoSection">
+                <legend>Informations nutritionnelles</legend>
+                <div id="nutritionalInfoFields">
+                    <!-- Ce div sera rempli dynamiquement par JavaScript -->
+                </div>
+                <button type="button" class="btn btn-primary" id="addNutritionalInfo">Ajouter des informations nutritionnelles</button>
+            </fieldset><br><br>
+
+            <!-- Champ Catégories (tableau d'objets JSON) -->
+            <fieldset class="form-group" id="categoriesSection">
+                <legend>Catégories</legend>
+                <div id="categoriesFields">
+                    <!-- Ce div sera rempli dynamiquement par JavaScript -->
+                </div>
+                <button type="button" class="btn btn-primary" id="addCategory">Ajouter une catégorie</button>
+            </fieldset><br><br>
+
+            <!-- Champ Image principale -->
+            <div class="form-group">
+                <label for="picture">Image principale</label>
+                <input type="file" class="form-control-file" id="picture" name="picture">
+            </div>
+
+            <!-- Champ Image des ingrédients -->
+            <div class="form-group">
+                <label for="ingredientsPicture">Image des ingrédients</label>
+                <input type="file" class="form-control-file" id="ingredientsPicture" name="ingredientsPicture">
+            </div>
+
+            <!-- Champ Image des informations nutritionnelles -->
+            <div class="form-group">
+                <label for="nutricionalInformationPicture">Image des informations nutritionnelles</label>
+                <input type="file" class="form-control-file" id="nutricionalInformationPicture" name="nutricionalInformationPicture">
+            </div>
+
+            <button type="submit" class="btn btn-success">Créer le produit</button>
+        </form>
+    </div>
+
+    <!-- Bootstrap JS and dependencies -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+
+    <script>
+        const productForm = document.getElementById('productForm');
+        const nutritionalInfoFields = document.getElementById('nutritionalInfoFields');
+        const addNutritionalInfoBtn = document.getElementById('addNutritionalInfo');
+        const categoriesFields = document.getElementById('categoriesFields');
+        const addCategoryBtn = document.getElementById('addCategory');
+
+        let nutritionalInfoCount = 0;
+        let categoryCount = 0;
+
+        // Fonction pour ajouter un champ d'information nutritionnelle
+        function addNutritionalInfoField() {
+            const fieldId = `nutritionalInfo${nutritionalInfoCount}`;
+
+            const html = `
+                <div id="${fieldId}">
+                    <label for="${fieldId}_ref">Référence</label>
+                    <input type="text" id="${fieldId}_ref" name="nutricionalInformations[${nutritionalInfoCount}][ref]"><br><br>
+
+                    <label for="${fieldId}_name">Nom</label>
+                    <input type="text" id="${fieldId}_name" name="nutricionalInformations[${nutritionalInfoCount}][name]"><br><br>
+
+                    <label for="${fieldId}_value">Valeur</label>
+                    <input type="number" id="${fieldId}_value" name="nutricionalInformations[${nutritionalInfoCount}][value]"><br><br>
+
+                    <label for="${fieldId}_unit">Unité</label>
+                    <input type="text" id="${fieldId}_unit" name="nutricionalInformations[${nutritionalInfoCount}][unit]"><br><br>
+
+                    <button type="button" onclick="removeNutritionalInfoField('${fieldId}')">Supprimer</button>
+                    <hr>
+                </div>
+            `;
+
+            nutritionalInfoFields.innerHTML += html;
+            nutritionalInfoCount++;
+        }
+
+        // Fonction pour supprimer un champ d'information nutritionnelle
+        function removeNutritionalInfoField(fieldId) {
+            const fieldToRemove = document.getElementById(fieldId);
+            if (fieldToRemove) {
+                nutritionalInfoFields.removeChild(fieldToRemove);
+            }
+        }
+
+        // Écouteur d'événement pour ajouter un champ d'information nutritionnelle
+        addNutritionalInfoBtn.addEventListener('click', addNutritionalInfoField);
+
+        // Fonction pour ajouter un champ de catégorie
+        function addCategoryField() {
+            const fieldId = `category${categoryCount}`;
+
+            const html = `
+                <div id="${fieldId}">
+                    <label for="${fieldId}_title">Titre de la catégorie</label>
+                    <input type="text" id="${fieldId}_title" name="categories[${categoryCount}][title]"><br><br>
+
+                    <button type="button" onclick="removeCategoryField('${fieldId}')">Supprimer</button>
+                    <hr>
+                </div>
+            `;
+
+            categoriesFields.innerHTML += html;
+            categoryCount++;
+        }
+
+        // Fonction pour supprimer un champ de catégorie
+        function removeCategoryField(fieldId) {
+            const fieldToRemove = document.getElementById(fieldId);
+            if (fieldToRemove) {
+                categoriesFields.removeChild(fieldToRemove);
+            }
+        }
+
+        // Écouteur d'événement pour ajouter un champ de catégorie
+        addCategoryBtn.addEventListener('click', addCategoryField);
+
+        productForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const formData = new FormData(productForm);
+            const url = 'https://api.pattbol.fr/products/create'; // Remplacez par l'URL de votre API
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Erreur HTTP! Statut: ${response.status}`);
+                }
+
+                const responseData = await response.json();
+                console.log('Réponse de l\'API:', responseData);
+                alert('Produit créé avec succès!');
+                // Ajoutez ici d'autres actions à effectuer après la création du produit
+            } catch (error) {
+                console.error('Erreur lors de la création du produit:', error);
+                alert('Une erreur est survenue lors de la création du produit.');
+            }
+        });
+    </script>
+</body>
+</html>
