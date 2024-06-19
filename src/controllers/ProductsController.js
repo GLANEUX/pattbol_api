@@ -14,9 +14,7 @@ exports.searchProduct = async (req, res) => {
         
         const search = req.params.search;
         // Vérifiez si la chaîne de recherche contient au moins 2 caractères
-        if (search.length < 2) {
-            return res.status(400).json({ message: "La recherche doit contenir au moins 2 caractères." });
-        }
+
         const searchResult = await Product.findAll({
             where: {
                 [Op.and]: [
@@ -210,6 +208,8 @@ exports.getUserHistory = async (req, res) => {
 };
 
 // Just for admin via Postman
+
+
 exports.createProduct = async (req, res) => {
     const transaction = await sequelize.transaction();
 
@@ -234,50 +234,32 @@ exports.createProduct = async (req, res) => {
             addedVitamins,
             addedMinerals,
             additives,
-            nutricionalInformations,
-            categories
+            other_added
         } = req.body;
-        // Vérification des données d'entrée
-        if (!title) {
-        
-            return res.status(400).json({ message: "Le champ 'title' est obligatoire." });
-            
-        }
-    
+
+        const nutricionalInformations = req.body.nutricionalInformations || [];
+        const categories = req.body.categories || [];
 
         // Traitement des images
-        const processedPictures = [];
-        if (req.files && Array.isArray(req.files)) {
-            req.files.forEach(file => {
-                if (file && file.buffer) {
+        const processedPictures = {};
+        if (req.files) {
+            const fileFields = ['picture', 'ingredientsPicture', 'nutricionalInformationPicture'];
+            fileFields.forEach(field => {
+                if (req.files[field]) {
+                    const file = req.files[field][0];
                     const randomNumbers = Math.random().toString(36).substring(2, 8);
                     const fileExtension = file.originalname.replace(/\s+/g, '_');
                     const fileName = `${randomNumbers}-${fileExtension}`;
-
-                    // Déterminer le dossier de destination en fonction du nom du fichier
-                    let uploadFolder;
-                    if (file.fieldname === 'picture') {
-                        uploadFolder = 'picture';
-                    } else if (file.fieldname === 'ingredientsPicture') {
-                        uploadFolder = 'ingredientsPicture';
-                    } else if (file.fieldname === 'nutricionalInformationPicture') {
-                        uploadFolder = 'nutricionalInformationPicture';
-                    } else {
-                        uploadFolder = 'other'; // Dossier par défaut
-                    }
-
-                    // Créer le dossier s'il n'existe pas déjà
-                    const uploadFolderPath = path.join(__dirname, '..', 'uploads', uploadFolder);
+                    const uploadFolderPath = path.join(__dirname, '..', 'uploads', field);
+                    
                     if (!fs.existsSync(uploadFolderPath)) {
                         fs.mkdirSync(uploadFolderPath, { recursive: true });
                     }
 
-                    // Enregistrer le fichier dans le dossier correspondant
                     const uploadPath = path.join(uploadFolderPath, fileName);
                     fs.writeFileSync(uploadPath, file.buffer);
 
-                    // Ajouter le chemin d'accès au fichier dans le tableau des images traitées
-                    processedPictures.push(`${process.env.URL}/uploads/${uploadFolder}/${fileName}`);
+                    processedPictures[field] = `${process.env.URL}/uploads/${field}/${fileName}`;
                 }
             });
         }
@@ -303,48 +285,45 @@ exports.createProduct = async (req, res) => {
             addedVitamins,
             addedMinerals,
             additives,
-            picture: processedPictures.find(image => image.includes('picture')),
-            ingredientsPicture: processedPictures.find(image => image.includes('ingredientsPicture')),
-            nutricionalInformationPicture: processedPictures.find(image => image.includes('nutricionalInformationPicture'))
+            other_added,
+            picture: processedPictures['picture'],
+            ingredientsPicture: processedPictures['ingredientsPicture'],
+            nutricionalInformationPicture: processedPictures['nutricionalInformationPicture']
         }, { transaction });
 
+        console.log('Produit créé:', product);
+
         // Traitement des informations nutritionnelles
-        if (nutricionalInformations) {
+        if (nutricionalInformations.length > 0) {
             for (const info of nutricionalInformations) {
                 await NutricionalsInformations.create({
                     productId: product.id,
                     ref: info.ref,
                     name: info.name,
                     value: info.value,
-                    unit: info.unit || '' // Fournir une valeur par défaut pour unit si elle est absente
+                    unit: info.unit || ''
                 }, { transaction });
+                console.log('Information nutritionnelle ajoutée:', info);
             }
         }
 
         // Associer les catégories au produit
-        if (categories) {
+        if (categories.length > 0) {
             for (const category of categories) {
                 await Category.create({
                     productId: product.id,
                     title: category.title,
                 }, { transaction });
+                console.log('Catégorie ajoutée:', category);
             }
         }
 
-        // Récupérer le produit avec ses informations nutritionnelles et ses catégories associées
-        const productWithDetails = await Product.findByPk(product.id, {
-            include: [
-                { model: NutricionalsInformations, as: 'nutricionalInformations' },
-                { model: Category, as: 'categories' }
-            ]
-        });
-
         await transaction.commit();
 
-        res.status(201).json({ message: 'Produit créé avec succès.', product, product_details: productWithDetails });
+        res.status(201).json({ message: 'Produit créé avec succès.', product });
     } catch (error) {
         await transaction.rollback();
         console.error("Erreur lors de la création du produit:", error);
-        res.status(500).json({ error: "Une erreur est survenue lors du traitement de votre demande." });
+        res.status(500).json({ error: "Une erreur est survenue lors du traitement de votre demande.", details: error.message });
     }
 };

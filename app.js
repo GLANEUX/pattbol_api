@@ -6,7 +6,7 @@ const sequelize = require('./src/config/database'); // Import de la configuratio
 const cronJob = require('./cronJobs/cleanUserHistory'); // Importer votre tâche Cron
 
 const app = express();
-const port = process.env.PORT;
+const port = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.urlencoded({ extended: true }));
@@ -16,6 +16,7 @@ app.use(express.json());
 const uploadsDirectory = path.join(__dirname, './src/uploads');
 // Définir une route pour servir les fichiers statiques dans le répertoire d'uploads
 app.use('/uploads', express.static(uploadsDirectory));
+
 
 // Importer les modèles Sequelize
 require('./src/models/UserModel');
@@ -37,4 +38,4 @@ sequelize.sync()
         // Démarrage du serveur
         app.listen(port, () => console.log(`Server is running on port ${port}`));
     })
-    .catch(err => console.log('Error synchronizing the database: ' + err));
+    .catch(err => console.error('Error synchronizing the database:', err));
